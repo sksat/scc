@@ -1,6 +1,49 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+enum {
+	tNumber,
+	tOperator,
+	tEOF,
+};
+
+typedef struct {
+	char *str;	// token string
+	int type;	// token type
+	int val;	// number
+} token_t;
+
+token_t* tokenize(char *src){
+	static token_t tokens[100];
+
+	int i = 0;
+	while(*src != '\0'){
+		// number
+		if('0' <= *src && *src <= '9'){
+			tokens[i].str = src;
+			tokens[i].type= tNumber;
+			tokens[i].val = strtol(src, &src, 10);
+			i++;
+			continue;
+		}
+
+		// operator
+		if(*src == '+' || *src == '-'){
+			tokens[i].str = src;
+			tokens[i].type= tOperator;
+			src++;
+			i++;
+			continue;
+		}
+
+		fprintf(stderr, "tokenize error: %s\n", src);
+		exit(1);
+	}
+	tokens[i].type = tEOF;
+
+	return tokens;
+}
+
 int main(int argc, char **argv){
 
 	// "1+2"のような簡単な式を処理する
@@ -10,29 +53,31 @@ int main(int argc, char **argv){
 		return 1;
 	}
 
+	token_t *tokens = tokenize(argv[1]);
+
 	printf(".intel_syntax noprefix\n");
 	printf(".global main\n");
 	printf("main:\n");
 
-	char *p;
 	// 最初の数字
-	printf("\tmov eax, %ld\n", strtol(argv[1], &p, 10));
 
-	while(*p != '\0'){
-		if(*p == '+'){
-			p++; // 読み飛ばす
-			printf("\tadd eax, %ld\n", strtol(p, &p, 10));
-			continue;
-		}
-		if(*p == '-'){
-			p++;
-			printf("\tsub eax, %ld\n", strtol(p, &p, 10));
-			continue;
-		}
+	printf("\tmov eax, %d\n", tokens[0].val);
 
-		// よくわからない文字
-		fprintf(stderr, "unexpected char: %c", *p);
-		return 1;
+	int i = 1;
+	while(tokens[i].type != tEOF){
+		if(tokens[i].type == tOperator){
+			printf("\t");
+			switch(*tokens[i].str){
+				case '+': printf("add "); break;
+				case '-': printf("sub "); break;
+				default:
+					fprintf(stderr, "unknown operator: %c", *tokens[i].str);
+					break;
+			}
+			i++;
+			printf("eax, %d\n", tokens[i].val);
+			i++;
+		}
 	}
 
 	printf("\tret");
