@@ -9,5 +9,8 @@ OBJS	= main.o
 default:
 	make scc
 
+test: scc
+	./test.sh
+
 scc: $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^
