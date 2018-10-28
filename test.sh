@@ -4,6 +4,11 @@ try(){
 	expected=$1
 	input=$2
 	./scc "$input" > tmp.s
+	if [ $? != 0 ]; then
+		echo "test failed."
+		echo "input: $input"
+		exit -1
+	fi
 	clang tmp.s -o tmp.bin
 	./tmp.bin
 	ret=$?
