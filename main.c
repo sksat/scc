@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define bool _Bool
+#define true 1
+#define false 0
+
 enum {
 	tNumber,
 	tOperator,
@@ -13,11 +17,21 @@ typedef struct {
 	int val;	// number
 } token_t;
 
+bool is_space(char c){
+	return (c==' ' || c=='\t' || c=='\n');
+}
+
 token_t* tokenize(char *src){
 	static token_t tokens[100];
 
 	int i = 0;
 	while(*src != '\0'){
+		// space
+		if(is_space(*src)){
+			src++;
+			continue;
+		}
+
 		// number
 		if('0' <= *src && *src <= '9'){
 			tokens[i].str = src;
