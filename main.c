@@ -107,33 +107,70 @@ node_t* get_number(token_t *token){
 
 node_t* parse_expr(token_t *token){
 	node_t *lhs = get_number(token);
-	while(token[ppos].type != tEOF){
-		if(token[ppos].type != tOperator) break;
-		int op = token[ppos].val;
-		ppos++;
-		lhs = new_expr(nOperator+op, lhs, get_number(token));
+	if(token[ppos].type == tEOF) return lhs;
+	if(token[ppos].type != tOperator){
+		fprintf(stderr, "unknown token: %s\n", token[ppos].str);
+		exit(1);
 	}
-	return lhs;
+
+	if(token[ppos].val == oAdd || token[ppos].val == oSub){
+		ppos++;
+		return new_expr(nOperator+token[ppos-1].val, lhs, parse_expr(token));
+	}else{
+		fprintf(stderr, "unknown operator: %s\n", token[ppos].str);
+		exit(1);
+	}
+}
+
+const char* get_op_str(int type){
+	switch(type){
+		case oAdd:
+			return "+";
+		case oSub:
+			return "-";
+		default:
+			return "unknwon";
+	}
+}
+
+void print_node(int n, node_t *node){
+	for(int i=0;i<n;i++) fprintf(stderr, "  ");
+	switch(node->type){
+		case nNumber:
+			fprintf(stderr, "number(%d)\n", node->val);
+			return;
+		case nOperator:
+			fprintf(stderr, "operator(%s)\n", get_op_str(node->val));
+			break;
+		default:
+			fprintf(stderr, "unknown\n");
+			return;
+	}
+	print_node(n+1, node->lhs);
+	print_node(n+1, node->rhs);
 }
 
 void gen_x86(node_t *node){
 	// とりあえずすべてをeaxに詰める
 	if(node->type == nNumber){
 		printf("\tmov eax, %d\n", node->val);
+		return;
 	}
 	if(nOperator <= node->type){
 		int op = node->type - nOperator;
 		gen_x86(node->lhs);
-		if(node->rhs->type != nNumber){
-			fprintf(stderr, "number node expected\n");
-			exit(1);
-		}
+		printf("\tpush eax\n");
+		gen_x86(node->rhs);
+		printf("\tpush eax\n");
+
+		printf("\tpop ecx\n");
+		printf("\tpop eax\n");
 		switch(op){
 			case oAdd:
-				printf("\tadd eax, %d\n", node->rhs->val);
+				printf("\tadd eax, ecx\n");
 				break;
 			case oSub:
-				printf("\tsub eax, %d\n", node->rhs->val);
+				printf("\tsub eax, ecx\n");
 				break;
 			default:
 				fprintf(stderr, "unknown operator\n");
@@ -153,6 +190,7 @@ int main(int argc, char **argv){
 
 	token_t *tokens = tokenize(argv[1]);
 	node_t *expr = parse_expr(tokens);
+	print_node(0, expr);
 
 	// start asm
 	printf(".intel_syntax noprefix\n");

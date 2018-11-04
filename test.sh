@@ -9,7 +9,7 @@ try(){
 		echo "input: $input"
 		exit -1
 	fi
-	clang tmp.s -o tmp.bin
+	clang -m32 tmp.s -o tmp.bin
 	./tmp.bin
 	ret=$?
 	if [ $ret != $expected ]; then
