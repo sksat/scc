@@ -8,6 +8,7 @@
 // token type
 enum {
 	tNumber,
+	tTermStart, tTermEnd,
 	tOperator,
 	tEOF,
 };
@@ -65,6 +66,17 @@ token_t* tokenize(char *src){
 			continue;
 		}
 
+		if(*src == '(' || *src == ')'){
+			tokens[i].str = src;
+			if(*src == '(')
+				tokens[i].type = tTermStart;
+			else
+				tokens[i].type = tTermEnd;
+			src++;
+			i++;
+			continue;
+		}
+
 		// operator
 		switch(*src){
 			case '+':
@@ -94,6 +106,13 @@ token_t* tokenize(char *src){
 	return tokens;
 }
 
+node_t* new_number(int val){
+	node_t *num = malloc(sizeof(node_t));
+	num->type = nNumber;
+	num->val = val;
+	return num;
+}
+
 node_t* new_expr(int type, node_t *lhs, node_t *rhs){
 	node_t *expr = malloc(sizeof(node_t));
 	expr->type = type;
@@ -102,20 +121,28 @@ node_t* new_expr(int type, node_t *lhs, node_t *rhs){
 	return expr;
 }
 
-node_t* get_number(token_t *token){
-	if(token[ppos].type != tNumber){
-		fprintf(stderr, "number expected, but got %s", token[ppos].str);
+node_t* parse_expr(token_t *token);
+
+node_t* parse_term(token_t *token){
+	if(token[ppos].type == tNumber)
+		return new_number(token[ppos++].val);
+	if(token[ppos].type == tTermStart){
+		ppos++;
+		node_t *term = parse_expr(token);
+		if(token[ppos].type != tTermEnd){
+			fprintf(stderr, "\')\' not found.\n");
+			exit(1);
+		}
+		ppos++;
+		return term;
 	}
-	node_t *num = malloc(sizeof(node_t));
-	num->type = nNumber;
-	num->val  = token[ppos].val;
-	ppos++;
-	return num;
+	fprintf(stderr, "unknown token: %s\n", token[ppos].str);
+	exit(1);
 }
 
 node_t* parse_mul_div(token_t *token){
-	node_t *lhs = get_number(token);
-	if(token[ppos].type == tEOF) return lhs;
+	node_t *lhs = parse_term(token);
+	if(token[ppos].type == tEOF || token[ppos].type == tTermEnd) return lhs;
 	if(token[ppos].type != tOperator){
 		fprintf(stderr, "unknown token: %s\n", token[ppos].str);
 		exit(1);
@@ -130,8 +157,8 @@ node_t* parse_mul_div(token_t *token){
 }
 
 node_t* parse_expr(token_t *token){
-	node_t *lhs = parse_mul_div(token); //get_number(token);
-	if(token[ppos].type == tEOF) return lhs;
+	node_t *lhs = parse_mul_div(token);
+	if(token[ppos].type == tEOF || token[ppos].type == tTermEnd) return lhs;
 	if(token[ppos].type != tOperator){
 		fprintf(stderr, "unknown token: %s\n", token[ppos].str);
 		exit(1);
