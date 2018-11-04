@@ -1,7 +1,7 @@
 CC		= clang
 CFLAGS	= 
 
-OBJS	= main.o vector.o
+OBJS	= main.o vector.o token.o
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@

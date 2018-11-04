@@ -2,38 +2,13 @@
 #include <stdlib.h>
 
 #include "vector.h"
-
-#define bool _Bool
-#define true 1
-#define false 0
-
-// token type
-enum {
-	tNumber,
-	tTermStart, tTermEnd,
-	tOperator,
-	tEOF,
-};
-
-// operator type
-enum {
-	oAdd = 0,
-	oSub,
-	oMul,
-	oDiv,
-};
+#include "token.h"
 
 // node type
 enum {
 	nNumber,
 	nOperator,
 };
-
-typedef struct {
-	char *str;	// token string
-	int type;	// token type
-	int val;	// number
-} token_t;
 
 typedef struct node_t {
 	int type;	// node type
@@ -43,120 +18,6 @@ typedef struct node_t {
 } node_t;
 
 int ppos = 0; // parse pos
-
-bool is_space(char c){
-	return (c==' ' || c=='\t' || c=='\n');
-}
-
-token_t* new_token(char *str, int type, int val){
-	token_t *token = malloc(sizeof(token_t));
-	token->str = str;
-	token->type= type;
-	token->val = val;
-	return token;
-}
-
-vector_t* tokenize(char *src){
-//	static token_t tokens[100];
-	token_t *t;
-	vector_t *tokens = vector_new(0);
-
-	int i = 0;
-	while(*src != '\0'){
-		// space
-		if(is_space(*src)){
-			src++;
-			continue;
-		}
-
-		// number
-		if('0' <= *src && *src <= '9'){
-//			tokens[i].str = src;
-//			tokens[i].type= tNumber;
-//			tokens[i].val = strtol(src, &src, 10);
-			token_t *t = new_token(src, tNumber, strtol(src, &src, 10));
-			vector_push_back(tokens, t);
-			i++;
-			continue;
-		}
-
-		if(*src == '(' || *src == ')'){
-			//tokens[i].str = src;
-			token_t *t = new_token(src, (*src=='(' ? tTermStart : tTermEnd), 0);
-			vector_push_back(tokens, t);
-			src++;
-			i++;
-			continue;
-		}
-
-		// operator
-		int op;
-		switch(*src){
-			case '+':
-				op = oAdd;
-				break;
-			case '-':
-				op = oSub;
-				break;
-			case '*':
-				op = oMul;
-				break;
-			case '/':
-				op = oDiv;
-				break;
-			default:
-				fprintf(stderr, "tokenize error: %s\n", src);
-				exit(1);
-		}
-
-//		tokens[i].str = src;
-//		tokens[i].type = tOperator;
-		t = new_token(src, tOperator, op);
-		vector_push_back(tokens, t);
-		src++;
-		i++;
-	}
-//	tokens[i].type = tEOF;
-
-	t = new_token(NULL, tEOF, 0);
-	vector_push_back(tokens, t);
-
-	return tokens;
-}
-
-const char* get_token_type(int type){
-	switch(type){
-		case tNumber:
-			return "number";
-		case tTermStart:
-			return "term start";
-		case tTermEnd:
-			return "term end";
-		case tOperator:
-			return "operator";
-		case tEOF:
-			return "EOF";
-		default:
-			return "unknown";
-	}
-}
-
-void print_token(vector_t *tokens){
-	token_t *t, *t2;
-
-	fprintf(stderr, "token(%ld)\n", tokens->size);
-
-	for(size_t i=0;i<tokens->size;i++){
-		t = vector_get(tokens, i);
-		if(i+1 == tokens->size)
-			fprintf(stderr, "[%s] %s\n", t->str, get_token_type(t->type));
-		else{
-			t2 = vector_get(tokens, i+1);
-			int len = t2->str - t->str;
-			fprintf(stderr, "[%.*s] %s\n", len, t->str, get_token_type(t->type));
-		}
-	}
-}
 
 node_t* new_number(int val){
 	node_t *num = malloc(sizeof(node_t));
