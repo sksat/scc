@@ -14,8 +14,9 @@ enum {
 
 // operator type
 enum {
-	oAdd,
+	oAdd = 0,
 	oSub,
+	oMul,
 };
 
 // node type
@@ -67,15 +68,18 @@ token_t* tokenize(char *src){
 		switch(*src){
 			case '+':
 				tokens[i].val = oAdd;
-				goto op;
+				break;
 			case '-':
 				tokens[i].val = oSub;
-				goto op;
+				break;
+			case '*':
+				tokens[i].val = oMul;
+				break;
 			default:
 				fprintf(stderr, "tokenize error: %s\n", src);
 				exit(1);
 		}
-op:
+
 		tokens[i].str = src;
 		tokens[i].type = tOperator;
 		src++;
@@ -105,8 +109,23 @@ node_t* get_number(token_t *token){
 	return num;
 }
 
-node_t* parse_expr(token_t *token){
+node_t* parse_mul(token_t *token){
 	node_t *lhs = get_number(token);
+	if(token[ppos].type == tEOF) return lhs;
+	if(token[ppos].type != tOperator){
+		fprintf(stderr, "unknown token: %s\n", token[ppos].str);
+		exit(1);
+	}
+
+	if(token[ppos].val == oMul){
+		ppos++;
+		return new_expr(nOperator+oMul, lhs, parse_mul(token));
+	}
+	return lhs;
+}
+
+node_t* parse_expr(token_t *token){
+	node_t *lhs = parse_mul(token); //get_number(token);
 	if(token[ppos].type == tEOF) return lhs;
 	if(token[ppos].type != tOperator){
 		fprintf(stderr, "unknown token: %s\n", token[ppos].str);
@@ -128,24 +147,22 @@ const char* get_op_str(int type){
 			return "+";
 		case oSub:
 			return "-";
+		case oMul:
+			return "*";
 		default:
-			return "unknwon";
+			return "unknown";
 	}
 }
 
 void print_node(int n, node_t *node){
 	for(int i=0;i<n;i++) fprintf(stderr, "  ");
-	switch(node->type){
-		case nNumber:
-			fprintf(stderr, "number(%d)\n", node->val);
-			return;
-		case nOperator:
-			fprintf(stderr, "operator(%s)\n", get_op_str(node->val));
-			break;
-		default:
-			fprintf(stderr, "unknown\n");
-			return;
-	}
+	if(node->type == nNumber){
+		fprintf(stderr, "number(%d)\n", node->val);
+		return;
+	}else if(node->type >= nOperator)
+		fprintf(stderr, "operator(%s)\n", get_op_str(node->type-nOperator));
+	else
+		fprintf(stderr, "unknown(%d)\n", node->val);
 	print_node(n+1, node->lhs);
 	print_node(n+1, node->rhs);
 }
@@ -171,6 +188,9 @@ void gen_x86(node_t *node){
 				break;
 			case oSub:
 				printf("\tsub eax, ecx\n");
+				break;
+			case oMul:
+				printf("\timul eax, ecx\n");
 				break;
 			default:
 				fprintf(stderr, "unknown operator\n");
