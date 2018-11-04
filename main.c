@@ -124,6 +124,23 @@ vector_t* tokenize(char *src){
 	return tokens;
 }
 
+void print_token(vector_t *tokens){
+	token_t *t, *t2;
+
+	fprintf(stderr, "token(%ld)\n", tokens->size);
+
+	for(size_t i=0;i<tokens->size;i++){
+		t = vector_get(tokens, i);
+		if(i+1 == tokens->size)
+			fprintf(stderr, "[%s] %d\n", t->str, t->type);
+		else{
+			t2 = vector_get(tokens, i+1);
+			int len = t2->str - t->str;
+			fprintf(stderr, "[%.*s] %d\n", len, t->str, t->type);
+		}
+	}
+}
+
 node_t* new_number(int val){
 	node_t *num = malloc(sizeof(node_t));
 	num->type = nNumber;
@@ -272,11 +289,7 @@ int main(int argc, char **argv){
 
 	vector_t *tokens = tokenize(argv[1]);
 
-	fprintf(stderr, "token(%ld)\n", tokens->size);
-	for(size_t i=0;i<tokens->size;i++){
-		token_t *t = vector_get(tokens, i);
-		fprintf(stderr, "%d  %s\n", t->type, t->str);
-	}
+	print_token(tokens);
 
 	node_t *expr = parse_expr(tokens);
 	print_node(0, expr);
