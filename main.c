@@ -204,20 +204,28 @@ int main(int argc, char **argv){
 
 	print_token(tokens);
 
-	node_t *expr;
+	vector_t *exprs = vector_new(0);
 	for(int i=1;;i++){
 		fprintf(stderr, "expr %d\n", i);
-		expr = parse_expr(tokens);
+		node_t *e = parse_expr(tokens);
+		vector_push_back(exprs, e);
 		if(ppos == tokens->size-1) break;
 	}
-	print_node(0, expr);
+
+	for(size_t i=0;i<exprs->size;i++){
+		node_t *e = vector_get(exprs, i);
+		print_node(0, e);
+	}
 
 	// start asm
 	printf(".intel_syntax noprefix\n");
 	printf(".global main\n");
 	printf("main:\n");
 
-	gen_x86(expr);
+	for(size_t i=0;i<exprs->size;i++){
+		node_t *e = vector_get(exprs, i);
+		gen_x86(e);
+	}
 
 	printf("\tret\n");
 
