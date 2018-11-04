@@ -1,7 +1,7 @@
 CC		= clang
 CFLAGS	= 
 
-OBJS	= main.o
+OBJS	= main.o vector.o
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@

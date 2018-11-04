@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "vector.h"
+
 #define bool _Bool
 #define true 1
 #define false 0
@@ -46,8 +48,18 @@ bool is_space(char c){
 	return (c==' ' || c=='\t' || c=='\n');
 }
 
-token_t* tokenize(char *src){
-	static token_t tokens[100];
+token_t* new_token(char *str, int type, int val){
+	token_t *token = malloc(sizeof(token_t));
+	token->str = str;
+	token->type= type;
+	token->val = val;
+	return token;
+}
+
+vector_t* tokenize(char *src){
+//	static token_t tokens[100];
+	token_t *t;
+	vector_t *tokens = vector_new(0);
 
 	int i = 0;
 	while(*src != '\0'){
@@ -59,49 +71,55 @@ token_t* tokenize(char *src){
 
 		// number
 		if('0' <= *src && *src <= '9'){
-			tokens[i].str = src;
-			tokens[i].type= tNumber;
-			tokens[i].val = strtol(src, &src, 10);
+//			tokens[i].str = src;
+//			tokens[i].type= tNumber;
+//			tokens[i].val = strtol(src, &src, 10);
+			token_t *t = new_token(src, tNumber, strtol(src, &src, 10));
+			vector_push_back(tokens, t);
 			i++;
 			continue;
 		}
 
 		if(*src == '(' || *src == ')'){
-			tokens[i].str = src;
-			if(*src == '(')
-				tokens[i].type = tTermStart;
-			else
-				tokens[i].type = tTermEnd;
+			//tokens[i].str = src;
+			token_t *t = new_token(src, (*src=='(' ? tTermStart : tTermEnd), 0);
+			vector_push_back(tokens, t);
 			src++;
 			i++;
 			continue;
 		}
 
 		// operator
+		int op;
 		switch(*src){
 			case '+':
-				tokens[i].val = oAdd;
+				op = oAdd;
 				break;
 			case '-':
-				tokens[i].val = oSub;
+				op = oSub;
 				break;
 			case '*':
-				tokens[i].val = oMul;
+				op = oMul;
 				break;
 			case '/':
-				tokens[i].val = oDiv;
+				op = oDiv;
 				break;
 			default:
 				fprintf(stderr, "tokenize error: %s\n", src);
 				exit(1);
 		}
 
-		tokens[i].str = src;
-		tokens[i].type = tOperator;
+//		tokens[i].str = src;
+//		tokens[i].type = tOperator;
+		t = new_token(src, tOperator, op);
+		vector_push_back(tokens, t);
 		src++;
 		i++;
 	}
-	tokens[i].type = tEOF;
+//	tokens[i].type = tEOF;
+
+	t = new_token(NULL, tEOF, 0);
+	vector_push_back(tokens, t);
 
 	return tokens;
 }
@@ -121,54 +139,60 @@ node_t* new_expr(int type, node_t *lhs, node_t *rhs){
 	return expr;
 }
 
-node_t* parse_expr(token_t *token);
+node_t* parse_expr(vector_t *token);
 
-node_t* parse_term(token_t *token){
-	if(token[ppos].type == tNumber)
-		return new_number(token[ppos++].val);
-	if(token[ppos].type == tTermStart){
+node_t* parse_term(vector_t *token){
+	token_t *t = vector_get(token, ppos);
+	if(t->type == tNumber){
+		ppos++;
+		return new_number(t->val);
+	}
+	if(t->type == tTermStart){
 		ppos++;
 		node_t *term = parse_expr(token);
-		if(token[ppos].type != tTermEnd){
+		t = vector_get(token, ppos);
+		if(t->type != tTermEnd){
 			fprintf(stderr, "\')\' not found.\n");
 			exit(1);
 		}
 		ppos++;
 		return term;
 	}
-	fprintf(stderr, "unknown token: %s\n", token[ppos].str);
+	fprintf(stderr, "unknown token(%d): %s\n", t->type, t->str);
 	exit(1);
 }
 
-node_t* parse_mul_div(token_t *token){
+node_t* parse_mul_div(vector_t *token){
 	node_t *lhs = parse_term(token);
-	if(token[ppos].type == tEOF || token[ppos].type == tTermEnd) return lhs;
-	if(token[ppos].type != tOperator){
-		fprintf(stderr, "unknown token: %s\n", token[ppos].str);
+	token_t *t = vector_get(token, ppos);
+	if(t->type == tEOF || t->type == tTermEnd) return lhs;
+	if(t->type != tOperator){
+		fprintf(stderr, "unknown token: %s\n", t->str);
 		exit(1);
 	}
 
-	if(token[ppos].val == oMul || token[ppos].val == oDiv){
+	if(t->val == oMul || t->val == oDiv){
 		ppos++;
-		return new_expr(nOperator+token[ppos-1].val, lhs, parse_mul_div(token));
+		return new_expr(nOperator+t->val, lhs, parse_mul_div(token));
 	}
 
 	return lhs;
 }
 
-node_t* parse_expr(token_t *token){
+node_t* parse_expr(vector_t *token){
 	node_t *lhs = parse_mul_div(token);
-	if(token[ppos].type == tEOF || token[ppos].type == tTermEnd) return lhs;
-	if(token[ppos].type != tOperator){
-		fprintf(stderr, "unknown token: %s\n", token[ppos].str);
+	token_t *t = vector_get(token, ppos);
+	if(t->type == tEOF || t->type == tTermEnd) return lhs;
+	if(t->type != tOperator){
+		fprintf(stderr, "unknown token: %s\n", t->str);
 		exit(1);
 	}
 
-	if(token[ppos].val == oAdd || token[ppos].val == oSub){
+	if(t->val == oAdd || t->val == oSub){
 		ppos++;
-		return new_expr(nOperator+token[ppos-1].val, lhs, parse_expr(token));
+		return new_expr(nOperator+t->val, lhs, parse_expr(token));
 	}else{
-		fprintf(stderr, "unknown operator: %s\n", token[ppos].str);
+		fprintf(stderr, "unknown operator: %s\n", t->str);
 		exit(1);
 	}
 }
@@ -246,7 +270,14 @@ int main(int argc, char **argv){
 		return 1;
 	}
 
-	token_t *tokens = tokenize(argv[1]);
+	vector_t *tokens = tokenize(argv[1]);
+
+	fprintf(stderr, "token(%ld)\n", tokens->size);
+	for(size_t i=0;i<tokens->size;i++){
+		token_t *t = vector_get(tokens, i);
+		fprintf(stderr, "%d  %s\n", t->type, t->str);
+	}
+
 	node_t *expr = parse_expr(tokens);
 	print_node(0, expr);
 
