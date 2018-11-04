@@ -17,6 +17,7 @@ enum {
 	oAdd = 0,
 	oSub,
 	oMul,
+	oDiv,
 };
 
 // node type
@@ -75,6 +76,9 @@ token_t* tokenize(char *src){
 			case '*':
 				tokens[i].val = oMul;
 				break;
+			case '/':
+				tokens[i].val = oDiv;
+				break;
 			default:
 				fprintf(stderr, "tokenize error: %s\n", src);
 				exit(1);
@@ -109,7 +113,7 @@ node_t* get_number(token_t *token){
 	return num;
 }
 
-node_t* parse_mul(token_t *token){
+node_t* parse_mul_div(token_t *token){
 	node_t *lhs = get_number(token);
 	if(token[ppos].type == tEOF) return lhs;
 	if(token[ppos].type != tOperator){
@@ -117,15 +121,16 @@ node_t* parse_mul(token_t *token){
 		exit(1);
 	}
 
-	if(token[ppos].val == oMul){
+	if(token[ppos].val == oMul || token[ppos].val == oDiv){
 		ppos++;
-		return new_expr(nOperator+oMul, lhs, parse_mul(token));
+		return new_expr(nOperator+token[ppos-1].val, lhs, parse_mul_div(token));
 	}
+
 	return lhs;
 }
 
 node_t* parse_expr(token_t *token){
-	node_t *lhs = parse_mul(token); //get_number(token);
+	node_t *lhs = parse_mul_div(token); //get_number(token);
 	if(token[ppos].type == tEOF) return lhs;
 	if(token[ppos].type != tOperator){
 		fprintf(stderr, "unknown token: %s\n", token[ppos].str);
@@ -149,6 +154,8 @@ const char* get_op_str(int type){
 			return "-";
 		case oMul:
 			return "*";
+		case oDiv:
+			return "/";
 		default:
 			return "unknown";
 	}
@@ -191,6 +198,10 @@ void gen_x86(node_t *node){
 				break;
 			case oMul:
 				printf("\timul eax, ecx\n");
+				break;
+			case oDiv:
+				printf("\tcdq\n"); // EAX->EDX:EAX
+				printf("\tidiv eax, ecx\n");
 				break;
 			default:
 				fprintf(stderr, "unknown operator\n");
