@@ -124,6 +124,23 @@ vector_t* tokenize(char *src){
 	return tokens;
 }
 
+const char* get_token_type(int type){
+	switch(type){
+		case tNumber:
+			return "number";
+		case tTermStart:
+			return "term start";
+		case tTermEnd:
+			return "term end";
+		case tOperator:
+			return "operator";
+		case tEOF:
+			return "EOF";
+		default:
+			return "unknown";
+	}
+}
+
 void print_token(vector_t *tokens){
 	token_t *t, *t2;
 
@@ -132,11 +149,11 @@ void print_token(vector_t *tokens){
 	for(size_t i=0;i<tokens->size;i++){
 		t = vector_get(tokens, i);
 		if(i+1 == tokens->size)
-			fprintf(stderr, "[%s] %d\n", t->str, t->type);
+			fprintf(stderr, "[%s] %s\n", t->str, get_token_type(t->type));
 		else{
 			t2 = vector_get(tokens, i+1);
 			int len = t2->str - t->str;
-			fprintf(stderr, "[%.*s] %d\n", len, t->str, t->type);
+			fprintf(stderr, "[%.*s] %s\n", len, t->str, get_token_type(t->type));
 		}
 	}
 }
