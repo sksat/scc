@@ -62,7 +62,7 @@ node_t* parse_term(vector_t *token){
 node_t* parse_mul_div(vector_t *token){
 	node_t *lhs = parse_term(token);
 	token_t *t = vector_get(token, ppos);
-	if(t->type == tEOF || t->type == tTermEnd) return lhs;
+	if(t->type == tEOF || t->type == tTermEnd || t->type == tExprEnd) return lhs;
 	if(t->type != tOperator){
 		fprintf(stderr, "unknown token: %s\n", t->str);
 		exit(1);
@@ -79,7 +79,17 @@ node_t* parse_mul_div(vector_t *token){
 node_t* parse_expr(vector_t *token){
 	node_t *lhs = parse_mul_div(token);
 	token_t *t = vector_get(token, ppos);
-	if(t->type == tEOF || t->type == tTermEnd) return lhs;
+	switch(t->type){
+		case tEOF:
+		case tTermEnd:
+			return lhs;
+		case tExprEnd:
+			ppos++;
+			return lhs;
+		default:
+			break;
+	}
+
 	if(t->type != tOperator){
 		fprintf(stderr, "unknown token: %s\n", t->str);
 		exit(1);
@@ -194,7 +204,12 @@ int main(int argc, char **argv){
 
 	print_token(tokens);
 
-	node_t *expr = parse_expr(tokens);
+	node_t *expr;
+	for(int i=1;;i++){
+		fprintf(stderr, "expr %d\n", i);
+		expr = parse_expr(tokens);
+		if(ppos == tokens->size-1) break;
+	}
 	print_node(0, expr);
 
 	// start asm

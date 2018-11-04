@@ -8,6 +8,7 @@ enum {
 	tNumber,
 	tTermStart, tTermEnd,
 	tOperator,
+	tExprEnd,
 	tEOF,
 };
 

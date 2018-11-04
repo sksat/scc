@@ -16,6 +16,8 @@ const char* get_token_type(int type){
 			return "term end";
 		case tOperator:
 			return "operator";
+		case tExprEnd:
+			return "expr end";
 		case tEOF:
 			return "EOF";
 		default:
@@ -76,6 +78,12 @@ vector_t* tokenize(char *src){
 		if(*src == '(' || *src == ')'){
 			t = new_token(src, (*src=='(' ? tTermStart : tTermEnd), 0);
 			vector_push_back(tokens, t);
+			src++;
+			continue;
+		}
+
+		if(*src == ';'){
+			vector_push_back(tokens, new_token(src, tExprEnd, 0));
 			src++;
 			continue;
 		}

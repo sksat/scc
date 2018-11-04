@@ -6,6 +6,8 @@ OBJS	= main.o vector.o token.o
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
+.PHONY: default test
+
 default:
 	make scc
 
