@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <sys/stat.h>
+
 #include "vector.h"
 #include "token.h"
 
@@ -156,16 +158,39 @@ void gen_x86(node_t *node){
 	}
 }
 
+long get_file_size(const char *fname){
+	struct stat st;
+	if(stat(fname, &st) != 0){
+		fprintf(stderr, "stat error\n");
+		exit(1);
+	}
+	return st.st_size;
+}
+
+char* load_file(const char *fname){
+	FILE *fp = fopen(fname, "r");
+	if(fp == NULL){
+		fprintf(stderr, "cannot open file: \"%s\"\n", fname);
+		exit(1);
+	}
+
+	long fsize = get_file_size(fname);
+	char *src = malloc(fsize);
+
+	fread(src, 1, fsize, fp);
+
+	fclose(fp);
+	return src;
+}
+
 int main(int argc, char **argv){
-
-	// "1+2"のような簡単な式を処理する
-
 	if(argc != 2){
-		fprintf(stderr, "usage> scc <expr>\n");
+		fprintf(stderr, "usage> scc <src>\n");
 		return 1;
 	}
 
-	vector_t *tokens = tokenize(argv[1]);
+	char* src = load_file(argv[1]);
+	vector_t *tokens = tokenize(src);
 
 	print_token(tokens);
 

@@ -3,7 +3,8 @@
 try(){
 	expected=$1
 	input=$2
-	./scc "$input" > tmp.s
+	echo "$input" > tmp.c
+	./scc tmp.c > tmp.s
 	if [ $? != 0 ]; then
 		echo "test failed."
 		echo "input: $input"
@@ -17,7 +18,7 @@ try(){
 		exit -1
 	fi
 	echo "ok[$ret = $input]"
-	rm tmp.s tmp.bin
+	rm tmp.c tmp.s tmp.bin
 }
 
 try 0 0
@@ -33,4 +34,4 @@ try 2 4/2
 try 10 1+2*3+6/2
 try 3 "(1+2)"
 try 15 "1+2*(3+4)"
-try 114 "2*(3+(4+5)*6))"
+try 114 "2*(3+(4+5)*6)"
