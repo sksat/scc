@@ -206,7 +206,7 @@ int main(int argc, char **argv){
 
 	vector_t *exprs = vector_new(0);
 	for(int i=1;;i++){
-		fprintf(stderr, "expr %d\n", i);
+//		fprintf(stderr, "expr %d\n", i);
 		node_t *e = parse_expr(tokens);
 		vector_push_back(exprs, e);
 		if(ppos == tokens->size-1) break;

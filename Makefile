@@ -11,6 +11,9 @@ OBJS	= main.o vector.o token.o
 default:
 	make scc
 
+clean:
+	rm -f scc *.o
+
 test: scc
 	./test.sh
 
