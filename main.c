@@ -125,7 +125,7 @@ void print_node(int n, node_t *node){
 	print_node(n+1, node->rhs);
 }
 
-void gen_x86(node_t *node){
+void gen_x86_sub(node_t *node){
 	// とりあえずすべてをeaxに詰める
 	if(node->type == nNumber){
 		printf("\tmov eax, %d\n", node->val);
@@ -133,9 +133,9 @@ void gen_x86(node_t *node){
 	}
 	if(nOperator <= node->type){
 		int op = node->type - nOperator;
-		gen_x86(node->lhs);
+		gen_x86_sub(node->lhs);
 		printf("\tpush eax\n");
-		gen_x86(node->rhs);
+		gen_x86_sub(node->rhs);
 		printf("\tpush eax\n");
 
 		printf("\tpop ecx\n");
@@ -158,6 +158,17 @@ void gen_x86(node_t *node){
 				error("unknown operator\n");
 		}
 	}
+}
+
+void gen_x86(vector_t *exprs){
+	printf(".intel_syntax noprefix\n");
+	printf(".global main\n");
+	printf("main:\n");
+	for(size_t i=0;i<exprs->size;i++){
+		node_t *node = vector_get(exprs, i);
+		gen_x86_sub(node);
+	}
+	printf("\tret\n");
 }
 
 long get_file_size(const char *fname){
@@ -202,17 +213,7 @@ int main(int argc, char **argv){
 		print_node(0, e);
 	}
 
-	// start asm
-	printf(".intel_syntax noprefix\n");
-	printf(".global main\n");
-	printf("main:\n");
-
-	for(size_t i=0;i<exprs->size;i++){
-		node_t *e = vector_get(exprs, i);
-		gen_x86(e);
-	}
-
-	printf("\tret\n");
+	gen_x86(exprs);
 
 	return 0;
 }
