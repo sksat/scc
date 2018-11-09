@@ -5,6 +5,7 @@
 
 #include "vector.h"
 #include "token.h"
+#include "util.h"
 
 // node type
 enum {
@@ -48,15 +49,12 @@ node_t* parse_term(vector_t *token){
 		ppos++;
 		node_t *term = parse_expr(token);
 		t = vector_get(token, ppos);
-		if(t->type != tTermEnd){
-			fprintf(stderr, "\')\' not found.\n");
-			exit(1);
-		}
+		if(t->type != tTermEnd)
+			error("\')\' not found.\n");
 		ppos++;
 		return term;
 	}
-	fprintf(stderr, "unknown token(%d): %s\n", t->type, t->str);
-	exit(1);
+	error("unknown token(%d): %s\n", t->type, t->str);
 }
 
 node_t* parse_mul_div(vector_t *token){
@@ -64,8 +62,7 @@ node_t* parse_mul_div(vector_t *token){
 	token_t *t = vector_get(token, ppos);
 	if(t->type == tEOF || t->type == tTermEnd || t->type == tExprEnd) return lhs;
 	if(t->type != tOperator){
-		fprintf(stderr, "unknown token: %s\n", t->str);
-		exit(1);
+		error("unknown token: %s\n", t->str);
 	}
 
 	if(t->val == oMul || t->val == oDiv){
@@ -90,18 +87,14 @@ node_t* parse_expr(vector_t *token){
 			break;
 	}
 
-	if(t->type != tOperator){
-		fprintf(stderr, "unknown token: %s\n", t->str);
-		exit(1);
-	}
+	if(t->type != tOperator)
+		error("unknown token: %s\n", t->str);
 
 	if(t->val == oAdd || t->val == oSub){
 		ppos++;
 		return new_expr(nOperator+t->val, lhs, parse_expr(token));
-	}else{
-		fprintf(stderr, "unknown operator: %s\n", t->str);
-		exit(1);
-	}
+	}else
+		error("unknown operator: %s\n", t->str);
 }
 
 const char* get_op_str(int type){
@@ -120,14 +113,14 @@ const char* get_op_str(int type){
 }
 
 void print_node(int n, node_t *node){
-	for(int i=0;i<n;i++) fprintf(stderr, "  ");
+	for(int i=0;i<n;i++) info("  ");
 	if(node->type == nNumber){
-		fprintf(stderr, "number(%d)\n", node->val);
+		info("number(%d)\n", node->val);
 		return;
 	}else if(node->type >= nOperator)
-		fprintf(stderr, "operator(%s)\n", get_op_str(node->type-nOperator));
+		info("operator(%s)\n", get_op_str(node->type-nOperator));
 	else
-		fprintf(stderr, "unknown(%d)\n", node->val);
+		info("unknown(%d)\n", node->val);
 	print_node(n+1, node->lhs);
 	print_node(n+1, node->rhs);
 }
@@ -162,27 +155,22 @@ void gen_x86(node_t *node){
 				printf("\tidiv eax, ecx\n");
 				break;
 			default:
-				fprintf(stderr, "unknown operator\n");
-				exit(1);
+				error("unknown operator\n");
 		}
 	}
 }
 
 long get_file_size(const char *fname){
 	struct stat st;
-	if(stat(fname, &st) != 0){
-		fprintf(stderr, "stat error\n");
-		exit(1);
-	}
+	if(stat(fname, &st) != 0)
+		error("stat error\n");
 	return st.st_size;
 }
 
 char* load_file(const char *fname){
 	FILE *fp = fopen(fname, "r");
-	if(fp == NULL){
-		fprintf(stderr, "cannot open file: \"%s\"\n", fname);
-		exit(1);
-	}
+	if(fp == NULL)
+		error("cannot open file: \"%s\"\n", fname);
 
 	long fsize = get_file_size(fname);
 	char *src = malloc(fsize);
@@ -194,10 +182,8 @@ char* load_file(const char *fname){
 }
 
 int main(int argc, char **argv){
-	if(argc != 2){
-		fprintf(stderr, "usage> scc <src>\n");
-		return 1;
-	}
+	if(argc != 2)
+		error("usage> scc <src>\n");
 
 	char* src = load_file(argv[1]);
 	vector_t *tokens = tokenize(src);
@@ -206,7 +192,6 @@ int main(int argc, char **argv){
 
 	vector_t *exprs = vector_new(0);
 	for(int i=1;;i++){
-//		fprintf(stderr, "expr %d\n", i);
 		node_t *e = parse_expr(tokens);
 		vector_push_back(exprs, e);
 		if(ppos == tokens->size-1) break;
